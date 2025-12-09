@@ -21,11 +21,17 @@ Loom is a framework for building collaborative AI systems. It provides the messa
 ## Architecture
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph Laptop["Laptop"]
         A1["Claude Code"]
         W1["Warp MCP"]
         A1 <--> W1
+    end
+
+    subgraph Server["Server"]
+        NATS[("NATS<br/>JetStream")]
+        Weft["Weft Coordinator"]
+        NATS <--> Weft
     end
 
     subgraph Desktop["Desktop"]
@@ -34,16 +40,8 @@ flowchart TB
         A2 <--> W2
     end
 
-    subgraph Server["Server"]
-        NATS[("NATS<br/>JetStream")]
-        Weft["Weft Coordinator"]
-    end
-
-    W1 <-->|messages<br/>work| NATS
-    W2 <-->|messages<br/>work| NATS
-    NATS <--> Weft
-    Weft -.->|spin up| Laptop
-    Weft -.->|spin up| Desktop
+    W1 <--> NATS
+    W2 <--> NATS
 ```
 
 ## Quick Start
