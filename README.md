@@ -8,6 +8,10 @@ Loom is a framework for building collaborative AI systems. It provides the messa
 
 > **⚠️ Alpha Software**: This project is under active development and is not yet production-ready. APIs may change without notice, and there may be bugs or missing features. Use at your own risk. Contributions and feedback are welcome!
 
+### Agent Agnostic
+
+Loom is designed to work with any AI coding agent that supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). The Warp MCP server provides a standardized interface for agent communication — your agents just need to call the MCP tools to participate in the Loom ecosystem.
+
 > **Loom** (noun): A device for weaving thread into fabric. In this project, it weaves AI agents into collaborative systems.
 
 ## Components
@@ -23,7 +27,7 @@ Loom is a framework for building collaborative AI systems. It provides the messa
 ```mermaid
 flowchart LR
     subgraph Laptop["Laptop"]
-        A1["Claude Code"]
+        A1["AI Agent"]
         W1["Warp MCP"]
         A1 <--> W1
     end
@@ -35,7 +39,7 @@ flowchart LR
     end
 
     subgraph Desktop["Desktop"]
-        A2["Claude Code"]
+        A2["AI Agent"]
         W2["Warp MCP"]
         A2 <--> W2
     end
@@ -62,7 +66,7 @@ nats-server -js
 npm install -g @loom/warp
 ```
 
-Add to your Claude Code MCP configuration (`~/.claude/mcp.json`):
+Add to your MCP client configuration (example for a typical MCP config file):
 
 ```json
 {
@@ -125,7 +129,7 @@ shuttle submit "Implement feature X" --capability typescript --boundary producti
 shuttle agents list
 
 # Manage targets
-shuttle targets add --name my-laptop --type claude-code --mechanism ssh --host laptop.local
+shuttle targets add --name my-laptop --type mcp-agent --mechanism ssh --host laptop.local
 
 # Watch activity
 shuttle watch
@@ -135,12 +139,12 @@ shuttle watch
 
 ### Multi-Machine Development
 
-Run Claude Code on multiple machines, all coordinating through a shared NATS server:
+Run AI agents on multiple machines, all coordinating through a shared NATS server:
 
 ```mermaid
 flowchart LR
-    L["Laptop<br/>(Claude)"] --> N["Desktop<br/>(NATS)"]
-    S["Server<br/>(Claude)"] --> N
+    L["Laptop<br/>(Agent)"] --> N["Desktop<br/>(NATS)"]
+    S["Server<br/>(Agent)"] --> N
 ```
 
 ### Parallel Task Execution
@@ -171,7 +175,7 @@ shuttle submit "Update blog" --boundary personal --capability writing
 
 ### Agent Registration & Discovery
 
-When Claude Code starts with Warp MCP configured, the agent can register itself in the shared registry. Other agents discover it and can send direct messages or work.
+When an AI agent starts with Warp MCP configured, it can register itself in the shared registry. Other agents discover it and can send direct messages or work.
 
 ```mermaid
 sequenceDiagram
@@ -261,7 +265,7 @@ sequenceDiagram
     Weft->>Weft: Find target with kubernetes capability
     Weft->>Target: SSH/webhook/local: start agent
 
-    Target->>Agent: Launch Claude Code + Warp
+    Target->>Agent: Launch AI Agent + Warp
     Agent->>NATS: register_agent(capabilities: ["kubernetes"])
     NATS-->>Weft: Agent registered
 
@@ -306,7 +310,7 @@ sequenceDiagram
 
 - Node.js 18+
 - NATS Server with JetStream enabled
-- Claude Code (for AI agent functionality)
+- Any MCP-compatible AI coding agent
 
 ## License
 
