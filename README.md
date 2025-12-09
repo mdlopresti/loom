@@ -7,6 +7,8 @@
 Loom is a framework for building collaborative AI systems. It provides the messaging backbone, orchestration layer, and tooling needed to coordinate multiple AI agents across projects and machines.
 
 > **⚠️ Alpha Software**: This project is under active development and is not yet production-ready. APIs may change without notice, and there may be bugs or missing features. Use at your own risk. Contributions and feedback are welcome!
+>
+> We are currently building and testing with Claude Code. After v1, we plan to verify and document support for other popular MCP-compatible coding agents.
 
 ### Agent Agnostic
 
