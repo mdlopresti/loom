@@ -22,36 +22,31 @@ Loom is a framework for building collaborative AI systems. It provides the messa
 
 ```mermaid
 flowchart TB
-    subgraph Agents["AI Agents"]
-        A1["Agent 1<br/>(Claude Code)"]
-        A2["Agent 2<br/>(Copilot)"]
-        AN["Agent N<br/>(...)"]
+    subgraph Laptop["Laptop"]
+        A1["Claude Code"]
+        W1["Warp"]
+        A1 <--> W1
     end
 
-    subgraph Warp["WARP (MCP Server)"]
-        CH["Channels<br/>(pub/sub)"]
-        REG["Registry<br/>(discovery)"]
-        WQ["Work Queues<br/>(distribute)"]
+    subgraph Desktop["Desktop"]
+        A2["Claude Code"]
+        W2["Warp"]
+        A2 <--> W2
     end
 
-    subgraph NATS["NATS JetStream"]
-        NS["Persistent messaging, KV store, Streams"]
+    subgraph Server["Server"]
+        NATS[("NATS<br/>JetStream")]
+        subgraph Weft["Weft Coordinator"]
+            RE["Routing"]
+            SM["Spin-Up"]
+        end
     end
 
-    subgraph Weft["WEFT (Coordinator)"]
-        RE["Routing<br/>Engine"]
-        SM["Spin-Up<br/>Manager"]
-        IT["Idle<br/>Tracker"]
-    end
-
-    subgraph Shuttle["SHUTTLE (CLI)"]
-        CLI["submit | agents | targets | work | watch"]
-    end
-
-    A1 & A2 & AN --> Warp
-    Warp --> NATS
-    NATS --> Weft
-    Weft --> Shuttle
+    W1 <-->|messages<br/>work| NATS
+    W2 <-->|messages<br/>work| NATS
+    NATS <--> Weft
+    SM -.->|spin up<br/>agents| Laptop
+    SM -.->|spin up<br/>agents| Desktop
 ```
 
 ## Quick Start
