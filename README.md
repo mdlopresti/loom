@@ -167,6 +167,136 @@ shuttle submit "Update API keys" --boundary corporate --capability devops
 shuttle submit "Update blog" --boundary personal --capability writing
 ```
 
+## How It Works
+
+### Agent Registration & Discovery
+
+When Claude Code starts with Warp MCP configured, the agent can register itself in the shared registry. Other agents discover it and can send direct messages or work.
+
+```mermaid
+sequenceDiagram
+    participant A1 as Agent (Laptop)
+    participant W1 as Warp MCP
+    participant NATS as NATS JetStream
+    participant W2 as Warp MCP
+    participant A2 as Agent (Desktop)
+
+    A1->>W1: register_agent(capabilities: ["typescript"])
+    W1->>NATS: Store in KV registry
+    W1->>W1: Start heartbeat (60s)
+    W1-->>A1: GUID assigned
+
+    A2->>W2: discover_agents(capability: "typescript")
+    W2->>NATS: Query KV registry
+    NATS-->>W2: Agent list
+    W2-->>A2: Found: Agent on Laptop
+```
+
+### Channel Messaging
+
+Agents communicate through persistent channels. Messages are stored in NATS JetStream, so agents can read history even if they weren't online when messages were sent.
+
+```mermaid
+sequenceDiagram
+    participant PM as Project Manager
+    participant W1 as Warp MCP
+    participant NATS as NATS JetStream
+    participant W2 as Warp MCP
+    participant Dev as Developer
+
+    PM->>W1: send_message(channel: "planning", "Starting Sprint 5")
+    W1->>NATS: Publish to stream
+
+    Note over Dev: Developer comes online later
+    Dev->>W2: read_messages(channel: "planning")
+    W2->>NATS: Fetch from stream
+    NATS-->>W2: Message history
+    W2-->>Dev: "Starting Sprint 5"
+
+    Dev->>W2: send_message(channel: "planning", "Ready to work")
+    W2->>NATS: Publish to stream
+```
+
+### Work Distribution
+
+Work is published to capability-based queues. The Weft coordinator routes work to appropriate agents based on capabilities and boundaries. If no agent is available, Weft can spin one up.
+
+```mermaid
+sequenceDiagram
+    participant User as User/CLI
+    participant Weft as Weft Coordinator
+    participant NATS as NATS JetStream
+    participant W1 as Warp MCP
+    participant A1 as Agent
+
+    User->>Weft: shuttle submit "Fix bug" --capability typescript
+    Weft->>Weft: Check for available agents
+    Weft->>NATS: Publish to typescript work queue
+
+    W1->>NATS: Subscribe to typescript queue
+    NATS-->>W1: Work item received
+    W1-->>A1: Work available
+
+    A1->>W1: Claim work
+    A1->>A1: Execute task
+    A1->>W1: Report completion
+    W1->>NATS: Acknowledge + result
+    NATS-->>Weft: Work completed
+```
+
+### Agent Spin-Up
+
+When work arrives but no suitable agent is online, Weft can automatically launch one using pre-configured targets (SSH, local process, webhook, Kubernetes, or GitHub Actions).
+
+```mermaid
+sequenceDiagram
+    participant User as User/CLI
+    participant Weft as Weft Coordinator
+    participant Target as Spin-Up Target
+    participant Agent as New Agent
+    participant NATS as NATS JetStream
+
+    User->>Weft: shuttle submit "Deploy app" --capability kubernetes
+    Weft->>Weft: No kubernetes agents online
+    Weft->>Weft: Find target with kubernetes capability
+    Weft->>Target: SSH/webhook/local: start agent
+
+    Target->>Agent: Launch Claude Code + Warp
+    Agent->>NATS: register_agent(capabilities: ["kubernetes"])
+    NATS-->>Weft: Agent registered
+
+    Weft->>NATS: Route work to new agent
+    Agent->>Agent: Execute task
+
+    Note over Agent: After idle timeout
+    Agent->>NATS: deregister_agent()
+    Agent->>Agent: Shutdown
+```
+
+### Direct Messaging
+
+Agents can send messages directly to each other via personal inboxes, useful for code review requests, status updates, or task delegation.
+
+```mermaid
+sequenceDiagram
+    participant A1 as Agent 1
+    participant W1 as Warp MCP
+    participant NATS as NATS JetStream
+    participant W2 as Warp MCP
+    participant A2 as Agent 2
+
+    A1->>W1: discover_agents(capability: "code-review")
+    W1-->>A1: Agent 2 (GUID: abc-123)
+
+    A1->>W1: send_direct_message(to: "abc-123", "Please review PR #42")
+    W1->>NATS: Publish to Agent 2's inbox
+
+    A2->>W2: read_direct_messages()
+    W2->>NATS: Fetch from inbox
+    NATS-->>W2: Message from Agent 1
+    W2-->>A2: "Please review PR #42"
+```
+
 ## Documentation
 
 - [Warp Documentation](https://github.com/mdlopresti/loom-warp#readme)
