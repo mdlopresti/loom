@@ -20,48 +20,38 @@ Loom is a framework for building collaborative AI systems. It provides the messa
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              LOOM                                        │
-│                                                                          │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐            │
-│  │   Agent 1    │     │   Agent 2    │     │   Agent N    │            │
-│  │ (Claude Code)│     │   (Copilot)  │     │    (...)     │            │
-│  └──────┬───────┘     └──────┬───────┘     └──────┬───────┘            │
-│         │                    │                    │                     │
-│         └────────────────────┼────────────────────┘                     │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │                         WARP (MCP Server)                          │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │ │
-│  │  │  Channels   │  │  Registry   │  │ Work Queues │                │ │
-│  │  │  (pub/sub)  │  │  (discovery)│  │ (distribute)│                │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘                │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │                    NATS JetStream                                  │ │
-│  │         (Persistent messaging, KV store, Streams)                  │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │                    WEFT (Coordinator)                              │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │ │
-│  │  │  Routing    │  │  Spin-Up    │  │   Idle      │                │ │
-│  │  │  Engine     │  │  Manager    │  │  Tracker    │                │ │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘                │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │                    SHUTTLE (CLI)                                   │ │
-│  │         shuttle submit | agents | targets | work | watch           │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Agents["AI Agents"]
+        A1["Agent 1<br/>(Claude Code)"]
+        A2["Agent 2<br/>(Copilot)"]
+        AN["Agent N<br/>(...)"]
+    end
+
+    subgraph Warp["WARP (MCP Server)"]
+        CH["Channels<br/>(pub/sub)"]
+        REG["Registry<br/>(discovery)"]
+        WQ["Work Queues<br/>(distribute)"]
+    end
+
+    subgraph NATS["NATS JetStream"]
+        NS["Persistent messaging, KV store, Streams"]
+    end
+
+    subgraph Weft["WEFT (Coordinator)"]
+        RE["Routing<br/>Engine"]
+        SM["Spin-Up<br/>Manager"]
+        IT["Idle<br/>Tracker"]
+    end
+
+    subgraph Shuttle["SHUTTLE (CLI)"]
+        CLI["submit | agents | targets | work | watch"]
+    end
+
+    A1 & A2 & AN --> Warp
+    Warp --> NATS
+    NATS --> Weft
+    Weft --> Shuttle
 ```
 
 ## Quick Start
@@ -157,30 +147,22 @@ shuttle watch
 
 Run Claude Code on multiple machines, all coordinating through a shared NATS server:
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Laptop     │     │  Desktop    │     │  Server     │
-│  (Claude)   │────▶│   (NATS)    │◀────│  (Claude)   │
-└─────────────┘     └─────────────┘     └─────────────┘
+```mermaid
+flowchart LR
+    L["Laptop<br/>(Claude)"] --> N["Desktop<br/>(NATS)"]
+    S["Server<br/>(Claude)"] --> N
 ```
 
 ### Parallel Task Execution
 
 Break large tasks into subtasks and distribute across available agents:
 
-```
-┌─────────────────────────────────────────────────────┐
-│              Project Manager Agent                   │
-│                                                      │
-│  "Refactor auth system across 10 services"          │
-└─────────────────────┬───────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        ▼             ▼             ▼
-┌───────────┐  ┌───────────┐  ┌───────────┐
-│ Worker 1  │  │ Worker 2  │  │ Worker 3  │
-│ Service A │  │ Service B │  │ Service C │
-└───────────┘  └───────────┘  └───────────┘
+```mermaid
+flowchart TB
+    PM["Project Manager Agent<br/><i>'Refactor auth system across 10 services'</i>"]
+    PM --> W1["Worker 1<br/>Service A"]
+    PM --> W2["Worker 2<br/>Service B"]
+    PM --> W3["Worker 3<br/>Service C"]
 ```
 
 ### Work Isolation
