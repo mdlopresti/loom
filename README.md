@@ -24,29 +24,26 @@ Loom is a framework for building collaborative AI systems. It provides the messa
 flowchart TB
     subgraph Laptop["Laptop"]
         A1["Claude Code"]
-        W1["Warp"]
+        W1["Warp MCP"]
         A1 <--> W1
     end
 
     subgraph Desktop["Desktop"]
         A2["Claude Code"]
-        W2["Warp"]
+        W2["Warp MCP"]
         A2 <--> W2
     end
 
     subgraph Server["Server"]
         NATS[("NATS<br/>JetStream")]
-        subgraph Weft["Weft Coordinator"]
-            RE["Routing"]
-            SM["Spin-Up"]
-        end
+        Weft["Weft Coordinator"]
     end
 
     W1 <-->|messages<br/>work| NATS
     W2 <-->|messages<br/>work| NATS
     NATS <--> Weft
-    SM -.->|spin up<br/>agents| Laptop
-    SM -.->|spin up<br/>agents| Desktop
+    Weft -.->|spin up| Laptop
+    Weft -.->|spin up| Desktop
 ```
 
 ## Quick Start
