@@ -1,20 +1,22 @@
-# Loom
-
-**Multi-agent infrastructure for AI coordination.**
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-Loom is a framework for building collaborative AI systems. It provides the messaging backbone, orchestration layer, and tooling needed to coordinate multiple AI agents across projects and machines.
+# Loom - Multi-agent infrastructure for AI coordination
 
 > **⚠️ Alpha Software**: This project is under active development and is not yet production-ready. APIs may change without notice, and there may be bugs or missing features. Use at your own risk. Contributions and feedback are welcome!
 >
 > We are currently building and testing with Claude Code. After v1, we plan to verify and document support for other popular MCP-compatible coding agents.
 
+Loom is a framework for building collaborative AI systems. It provides the messaging backbone, orchestration layer, and tooling needed to coordinate multiple AI agents across projects and machines.
+
+## Why Loom?
+
+Instead of one AI agent that tries to do everything, Loom enables you to build a **team of specialists**. Each agent can be configured with domain-specific knowledge and limited to only the tools it needs — a database agent that only touches databases, a frontend agent that only modifies UI code, a security reviewer that can read but not write.
+
+When these specialists can communicate and coordinate, they become more than the sum of their parts. Complex tasks get broken down and routed to the right expert. Work stays within appropriate boundaries. And you maintain control over what each agent can actually do.
+
+**Think of it like building a software team, not a single developer.**
+
 ### Agent Agnostic
 
 Loom is designed to work with any AI coding agent that supports the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). The Warp MCP server provides a standardized interface for agent communication — your agents just need to call the MCP tools to participate in the Loom ecosystem.
-
-> **Loom** (noun): A device for weaving thread into fabric. In this project, it weaves AI agents into collaborative systems.
 
 ## Components
 
