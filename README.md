@@ -1,17 +1,6 @@
 # Loom - Multi-agent infrastructure for AI coordination
 
-> **Beta Status**: Loom has completed integration testing and is ready for early adopters. All core features are implemented and tested. APIs are stabilizing but may still change. Production use is possible with appropriate monitoring.
->
-> **Tested Capabilities**:
-> - Multi-machine agent coordination (agents on different machines communicating through shared NATS)
-> - Agent registration and discovery across computers
-> - Channel-based pub/sub messaging with persistence
-> - Direct agent-to-agent messaging via personal inboxes
-> - Capability-based work distribution with competing consumers
-> - Dead letter queue for failed work handling
-> - Dynamic agent spin-up via multiple mechanisms (SSH, local, webhook, Kubernetes, GitHub Actions)
->
-> We are currently building and testing with Claude Code. After v1, we plan to verify and document support for other popular MCP-compatible coding agents.
+> **Beta**: Ready for early adopters. Core features tested and stable. Currently optimized for Claude Code; other MCP-compatible agents planned for v1.
 
 Loom is a framework for building collaborative AI systems. It provides the messaging backbone, orchestration layer, and tooling needed to coordinate multiple AI agents across projects and machines.
 
@@ -31,11 +20,11 @@ Loom is designed to work with any AI coding agent that supports the [Model Conte
 
 | Component | Description | Repository |
 |-----------|-------------|------------|
-| **Warp** | NATS JetStream MCP server for cross-computer agent communication | [loom-warp](https://github.com/mdlopresti/loom-warp) |
-| **Weft** | Intelligent work coordinator with capability-based routing | [loom-weft](https://github.com/mdlopresti/loom-weft) |
-| **Shuttle** | CLI for fleet management (included in loom-weft) | [loom-weft](https://github.com/mdlopresti/loom-weft) |
-| **Pattern** | MCP server providing hierarchical memory for AI agents | [loom-pattern](https://github.com/mdlopresti/loom-pattern) |
-| **Tools** | Pre-built Docker images for running AI agents in CI/CD | [loom-tools](https://github.com/mdlopresti/loom-tools) |
+| **Warp** | MCP server for agent communication (required) | [loom-warp](https://github.com/mdlopresti/loom-warp) |
+| **Pattern** | MCP server for agent memory (optional) | [loom-pattern](https://github.com/mdlopresti/loom-pattern) |
+| **Weft** | Work coordinator with routing and spin-up (optional) | [loom-weft](https://github.com/mdlopresti/loom-weft) |
+| **Shuttle** | CLI for fleet management (optional) | [loom-shuttle](https://github.com/mdlopresti/loom-shuttle) |
+| **Tools** | Docker images for CI/CD (optional) | [loom-tools](https://github.com/mdlopresti/loom-tools) |
 
 ## Architecture
 
@@ -43,31 +32,23 @@ Loom is designed to work with any AI coding agent that supports the [Model Conte
 flowchart LR
     subgraph Laptop["Laptop"]
         A1["AI Agent"]
-        W1["Warp MCP"]
-        P1["Pattern MCP"]
-        A1 <--> W1
-        A1 <--> P1
+        W1["Warp"]
     end
 
-    subgraph Server["Server"]
-        NATS[("NATS<br/>JetStream")]
-        Weft["Weft Coordinator"]
-        NATS <--> Weft
-    end
+    NATS[("NATS<br/>JetStream")]
 
     subgraph Desktop["Desktop"]
         A2["AI Agent"]
-        W2["Warp MCP"]
-        P2["Pattern MCP"]
-        A2 <--> W2
-        A2 <--> P2
+        W2["Warp"]
     end
 
+    A1 <--> W1
+    A2 <--> W2
     W1 <--> NATS
     W2 <--> NATS
-    P1 <--> NATS
-    P2 <--> NATS
 ```
+
+*Optional components (Pattern, Weft) connect to the same NATS server.*
 
 ## Quick Start
 
@@ -115,250 +96,73 @@ See the [Documentation](#documentation) section for details on each component.
 
 ## Features
 
-### Warp - Messaging Backbone
+### Warp (Core)
 
-- **Channels**: Topic-based pub/sub with message persistence
-- **Agent Registry**: Cross-computer agent discovery via shared KV store
-- **Direct Messaging**: Reliable agent-to-agent communication
-- **Work Queues**: Capability-based work distribution with competing consumers
-- **Dead Letter Queue**: Failed work capture for debugging and retry
+- **Channels** — Topic-based pub/sub with message persistence
+- **Agent Registry** — Cross-computer agent discovery
+- **Direct Messaging** — Agent-to-agent communication via personal inboxes
+- **Work Queues** — Capability-based work distribution with competing consumers
 
-### Weft - Intelligent Coordinator
+### Pattern (Optional)
 
-- **Routing Engine**: Route work based on capabilities and user-defined boundaries
-- **Spin-Up Manager**: Automatically launch agents when work arrives (SSH, local, webhook, Kubernetes, GitHub Actions)
-- **Idle Tracking**: Scale down agents that have been idle too long
-- **Target Registry**: Manage pre-configured agent launch targets
-- **REST API**: Programmatic fleet management
+- **Hierarchical Memory** — Private and shared memory scopes
+- **Session Context** — Recall relevant memories at startup
+- **Cross-Agent Learning** — Share insights across agents
 
-### Shuttle - Fleet Management CLI
+### Weft (Optional)
 
-```bash
-# Submit work
-shuttle submit "Implement feature X" --capability typescript --boundary production
+- **Work Routing** — Route based on capabilities and boundaries
+- **Agent Spin-Up** — Launch agents on demand (SSH, Kubernetes, GitHub Actions)
+- **Idle Tracking** — Scale down unused agents
 
-# List agents
-shuttle agents list
+### Tools (Optional)
 
-# Manage targets
-shuttle targets add --name my-laptop --type mcp-agent --mechanism ssh --host laptop.local
-
-# Watch activity
-shuttle watch
-```
-
-### Pattern - Agent Memory
-
-- **Hierarchical Memory**: Private (per-agent) and shared (per-project) memory scopes
-- **Automatic Expiration**: TTL-based cleanup for short-term memories
-- **Session Context**: Efficient recall of relevant memories at session startup
-- **Cross-Agent Learning**: Share insights with other agents in the same project
-
-```bash
-npm install -g @loom/pattern
-```
-
-Add Pattern to your MCP configuration alongside Warp:
-
-```json
-{
-  "mcpServers": {
-    "pattern": {
-      "command": "pattern",
-      "env": {
-        "NATS_URL": "nats://localhost:4222",
-        "LOOM_PROJECT_ID": "my-project"
-      }
-    }
-  }
-}
-```
-
-### Tools - Docker Images for CI/CD
-
-Pre-built images for running AI agents in GitHub Actions and other CI/CD platforms:
-
-```yaml
-# .github/workflows/agent.yml
-jobs:
-  agent:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/mdlopresti/loom-tools:claude-node20-full
-    steps:
-      - uses: actions/checkout@v4
-      - run: claude --task "Review this PR"
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-```
-
-Available images: `claude-node20-full`, `claude-python3.12-full`, `claude-multi-full`, and more.
+- **Docker Images** — Pre-built containers for CI/CD pipelines
+- **Example Workflows** — Ready-to-use GitHub Actions templates
 
 ## Use Cases
 
-### Multi-Machine Development
-
-Run AI agents on multiple machines, all coordinating through a shared NATS server:
-
-```mermaid
-flowchart LR
-    L["Laptop<br/>(Agent)"] --> N["Desktop<br/>(NATS)"]
-    S["Server<br/>(Agent)"] --> N
-```
-
-### Parallel Task Execution
-
-Break large tasks into subtasks and distribute across available agents:
-
-```mermaid
-flowchart TB
-    PM["Project Manager Agent<br/><i>'Refactor auth system across 10 services'</i>"]
-    PM --> W1["Worker 1<br/>Service A"]
-    PM --> W2["Worker 2<br/>Service B"]
-    PM --> W3["Worker 3<br/>Service C"]
-```
-
-### Work Isolation
-
-Use boundaries to ensure sensitive work stays on appropriate machines:
-
-```bash
-# Corporate work routes to corporate-approved machines
-shuttle submit "Update API keys" --boundary corporate --capability devops
-
-# Personal projects route to personal machines
-shuttle submit "Update blog" --boundary personal --capability writing
-```
+- **Multi-Machine Development** — Run agents on laptop, desktop, and server, all coordinating through shared NATS
+- **Parallel Task Execution** — Break large tasks into subtasks distributed across specialist agents
+- **Work Isolation** — Route sensitive work to appropriate machines based on data classification
+- **CI/CD Integration** — Spin up agents in GitHub Actions for automated code review, testing, or deployment
 
 ## How It Works
 
-### Agent Registration & Discovery
+### Agent Discovery
 
-When an AI agent starts with Warp MCP configured, it can register itself in the shared registry. Other agents discover it and can send direct messages or work.
+Agents register with Warp and discover each other through the shared NATS registry:
 
 ```mermaid
 sequenceDiagram
     participant A1 as Agent (Laptop)
-    participant W1 as Warp MCP
     participant NATS as NATS JetStream
-    participant W2 as Warp MCP
     participant A2 as Agent (Desktop)
 
-    A1->>W1: register_agent(capabilities: ["typescript"])
-    W1->>NATS: Store in KV registry
-    W1->>W1: Start heartbeat (60s)
-    W1-->>A1: GUID assigned
-
-    A2->>W2: discover_agents(capability: "typescript")
-    W2->>NATS: Query KV registry
-    NATS-->>W2: Agent list
-    W2-->>A2: Found: Agent on Laptop
+    A1->>NATS: register_agent(capabilities: ["typescript"])
+    A2->>NATS: discover_agents(capability: "typescript")
+    NATS-->>A2: Found: Agent on Laptop
+    A2->>NATS: send_direct_message("Please review PR #42")
+    NATS-->>A1: Message received
 ```
 
 ### Channel Messaging
 
-Agents communicate through persistent channels. Messages are stored in NATS JetStream, so agents can read history even if they weren't online when messages were sent.
+Agents communicate through persistent channels. Messages are stored in JetStream, so agents can read history even if they weren't online when messages were sent:
 
 ```mermaid
 sequenceDiagram
     participant PM as Project Manager
-    participant W1 as Warp MCP
     participant NATS as NATS JetStream
-    participant W2 as Warp MCP
     participant Dev as Developer
 
-    PM->>W1: send_message(channel: "planning", "Starting Sprint 5")
-    W1->>NATS: Publish to stream
-
-    Note over Dev: Developer comes online later
-    Dev->>W2: read_messages(channel: "planning")
-    W2->>NATS: Fetch from stream
-    NATS-->>W2: Message history
-    W2-->>Dev: "Starting Sprint 5"
-
-    Dev->>W2: send_message(channel: "planning", "Ready to work")
-    W2->>NATS: Publish to stream
+    PM->>NATS: send_message(channel: "planning", "Starting Sprint 5")
+    Note over Dev: Comes online later
+    Dev->>NATS: read_messages(channel: "planning")
+    NATS-->>Dev: Message history
 ```
 
-### Work Distribution
-
-Work is published to capability-based queues. The Weft coordinator routes work to appropriate agents based on capabilities and boundaries. If no agent is available, Weft can spin one up.
-
-```mermaid
-sequenceDiagram
-    participant User as User/CLI
-    participant Weft as Weft Coordinator
-    participant NATS as NATS JetStream
-    participant W1 as Warp MCP
-    participant A1 as Agent
-
-    User->>Weft: shuttle submit "Fix bug" --capability typescript
-    Weft->>Weft: Check for available agents
-    Weft->>NATS: Publish to typescript work queue
-
-    W1->>NATS: Subscribe to typescript queue
-    NATS-->>W1: Work item received
-    W1-->>A1: Work available
-
-    A1->>W1: Claim work
-    A1->>A1: Execute task
-    A1->>W1: Report completion
-    W1->>NATS: Acknowledge + result
-    NATS-->>Weft: Work completed
-```
-
-### Agent Spin-Up
-
-When work arrives but no suitable agent is online, Weft can automatically launch one using pre-configured targets (SSH, local process, webhook, Kubernetes, or GitHub Actions).
-
-```mermaid
-sequenceDiagram
-    participant User as User/CLI
-    participant Weft as Weft Coordinator
-    participant Target as Spin-Up Target
-    participant Agent as New Agent
-    participant NATS as NATS JetStream
-
-    User->>Weft: shuttle submit "Deploy app" --capability kubernetes
-    Weft->>Weft: No kubernetes agents online
-    Weft->>Weft: Find target with kubernetes capability
-    Weft->>Target: SSH/webhook/local: start agent
-
-    Target->>Agent: Launch AI Agent + Warp
-    Agent->>NATS: register_agent(capabilities: ["kubernetes"])
-    NATS-->>Weft: Agent registered
-
-    Weft->>NATS: Route work to new agent
-    Agent->>Agent: Execute task
-
-    Note over Agent: After idle timeout
-    Agent->>NATS: deregister_agent()
-    Agent->>Agent: Shutdown
-```
-
-### Direct Messaging
-
-Agents can send messages directly to each other via personal inboxes, useful for code review requests, status updates, or task delegation.
-
-```mermaid
-sequenceDiagram
-    participant A1 as Agent 1
-    participant W1 as Warp MCP
-    participant NATS as NATS JetStream
-    participant W2 as Warp MCP
-    participant A2 as Agent 2
-
-    A1->>W1: discover_agents(capability: "code-review")
-    W1-->>A1: Agent 2 (GUID: abc-123)
-
-    A1->>W1: send_direct_message(to: "abc-123", "Please review PR #42")
-    W1->>NATS: Publish to Agent 2's inbox
-
-    A2->>W2: read_direct_messages()
-    W2->>NATS: Fetch from inbox
-    NATS-->>W2: Message from Agent 1
-    W2-->>A2: "Please review PR #42"
-```
+For detailed documentation on work distribution, agent spin-up, and other advanced features, see the [Weft documentation](https://github.com/mdlopresti/loom-weft#readme).
 
 ## Documentation
 
