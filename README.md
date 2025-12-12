@@ -74,52 +74,57 @@ flowchart LR
 ### 1. Start NATS with JetStream
 
 ```bash
-# Docker (easiest)
 docker run -d --name nats -p 4222:4222 nats:latest -js
-
-# Or native
-nats-server -js
 ```
 
-### 2. Install Warp (MCP Server)
+### 2. Install Loom MCP Servers
 
 ```bash
-npm install -g @loom/warp
+npm install -g @loom/warp @loom/pattern
 ```
 
-Add to your MCP client configuration (example for a typical MCP config file):
+### 3. Configure Your MCP Client
+
+Add to your MCP client configuration (e.g., `~/.claude/settings.json` for Claude Code):
 
 ```json
 {
   "mcpServers": {
-    "loom": {
+    "loom-warp": {
       "command": "warp",
       "env": {
-        "NATS_URL": "nats://localhost:4222"
+        "NATS_URL": "nats://localhost:4222",
+        "LOOM_PROJECT_ID": "my-project"
+      }
+    },
+    "loom-pattern": {
+      "command": "pattern",
+      "env": {
+        "NATS_URL": "nats://localhost:4222",
+        "LOOM_PROJECT_ID": "my-project"
       }
     }
   }
 }
 ```
 
-### 3. (Optional) Install Weft Coordinator
+### 4. (Optional) Add Weft Coordinator
 
-For advanced features like work routing, agent spin-up, and fleet management:
+For work routing, agent spin-up, and fleet management:
 
 ```bash
-# Clone the coordinator
-git clone https://github.com/mdlopresti/loom-weft.git
-cd loom-weft
+# Run Weft via Docker
+docker run -d --name weft \
+  -p 3000:3000 \
+  -e NATS_URL=nats://host.docker.internal:4222 \
+  ghcr.io/mdlopresti/loom-weft:latest
 
-# Install and build
-pnpm install
-pnpm build
+# Install Shuttle CLI
+npm install -g @loom/shuttle
 
-# Run the coordinator
-pnpm --filter @loom/weft start
-
-# Use the CLI
-pnpm --filter @loom/shuttle cli -- agents list
+# Configure and use
+shuttle config set nats-url nats://localhost:4222
+shuttle agents list
 ```
 
 ## Features
