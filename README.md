@@ -1,6 +1,15 @@
 # Loom - Multi-agent infrastructure for AI coordination
 
-> **⚠️ Alpha Software**: This project is under active development and is not yet production-ready. APIs may change without notice, and there may be bugs or missing features. Use at your own risk. Contributions and feedback are welcome!
+> **Beta Status**: Loom has completed integration testing and is ready for early adopters. All core features are implemented and tested. APIs are stabilizing but may still change. Production use is possible with appropriate monitoring.
+>
+> **Tested Capabilities**:
+> - Multi-machine agent coordination (agents on different machines communicating through shared NATS)
+> - Agent registration and discovery across computers
+> - Channel-based pub/sub messaging with persistence
+> - Direct agent-to-agent messaging via personal inboxes
+> - Capability-based work distribution with competing consumers
+> - Dead letter queue for failed work handling
+> - Dynamic agent spin-up via multiple mechanisms (SSH, local, webhook, Kubernetes, GitHub Actions)
 >
 > We are currently building and testing with Claude Code. After v1, we plan to verify and document support for other popular MCP-compatible coding agents.
 
@@ -25,6 +34,8 @@ Loom is designed to work with any AI coding agent that supports the [Model Conte
 | **Warp** | NATS JetStream MCP server for cross-computer agent communication | [loom-warp](https://github.com/mdlopresti/loom-warp) |
 | **Weft** | Intelligent work coordinator with capability-based routing | [loom-weft](https://github.com/mdlopresti/loom-weft) |
 | **Shuttle** | CLI for fleet management (included in loom-weft) | [loom-weft](https://github.com/mdlopresti/loom-weft) |
+| **Pattern** | MCP server providing hierarchical memory for AI agents | [loom-pattern](https://github.com/mdlopresti/loom-pattern) |
+| **Tools** | Pre-built Docker images for running AI agents in CI/CD | [loom-tools](https://github.com/mdlopresti/loom-tools) |
 
 ## Architecture
 
@@ -33,7 +44,9 @@ flowchart LR
     subgraph Laptop["Laptop"]
         A1["AI Agent"]
         W1["Warp MCP"]
+        P1["Pattern MCP"]
         A1 <--> W1
+        A1 <--> P1
     end
 
     subgraph Server["Server"]
@@ -45,11 +58,15 @@ flowchart LR
     subgraph Desktop["Desktop"]
         A2["AI Agent"]
         W2["Warp MCP"]
+        P2["Pattern MCP"]
         A2 <--> W2
+        A2 <--> P2
     end
 
     W1 <--> NATS
     W2 <--> NATS
+    P1 <--> NATS
+    P2 <--> NATS
 ```
 
 ## Quick Start
@@ -138,6 +155,53 @@ shuttle targets add --name my-laptop --type mcp-agent --mechanism ssh --host lap
 # Watch activity
 shuttle watch
 ```
+
+### Pattern - Agent Memory
+
+- **Hierarchical Memory**: Private (per-agent) and shared (per-project) memory scopes
+- **Automatic Expiration**: TTL-based cleanup for short-term memories
+- **Session Context**: Efficient recall of relevant memories at session startup
+- **Cross-Agent Learning**: Share insights with other agents in the same project
+
+```bash
+npm install -g @loom/pattern
+```
+
+Add Pattern to your MCP configuration alongside Warp:
+
+```json
+{
+  "mcpServers": {
+    "pattern": {
+      "command": "pattern",
+      "env": {
+        "NATS_URL": "nats://localhost:4222",
+        "LOOM_PROJECT_ID": "my-project"
+      }
+    }
+  }
+}
+```
+
+### Tools - Docker Images for CI/CD
+
+Pre-built images for running AI agents in GitHub Actions and other CI/CD platforms:
+
+```yaml
+# .github/workflows/agent.yml
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/mdlopresti/loom-tools:claude-node20-full
+    steps:
+      - uses: actions/checkout@v4
+      - run: claude --task "Review this PR"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+Available images: `claude-node20-full`, `claude-python3.12-full`, `claude-multi-full`, and more.
 
 ## Use Cases
 
@@ -307,8 +371,10 @@ sequenceDiagram
 
 ## Documentation
 
-- [Warp Documentation](https://github.com/mdlopresti/loom-warp#readme)
-- [Weft + Shuttle Documentation](https://github.com/mdlopresti/loom-weft#readme)
+- [Warp Documentation](https://github.com/mdlopresti/loom-warp#readme) - Messaging backbone
+- [Weft + Shuttle Documentation](https://github.com/mdlopresti/loom-weft#readme) - Coordinator and CLI
+- [Pattern Documentation](https://github.com/mdlopresti/loom-pattern#readme) - Agent memory
+- [Tools Documentation](https://github.com/mdlopresti/loom-tools#readme) - Docker images for CI/CD
 
 ## Requirements
 
