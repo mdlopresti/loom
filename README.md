@@ -166,10 +166,11 @@ For detailed documentation on work distribution, agent spin-up, and other advanc
 
 ## Documentation
 
-- [Warp Documentation](https://github.com/mdlopresti/loom-warp#readme) - Messaging backbone
-- [Weft + Shuttle Documentation](https://github.com/mdlopresti/loom-weft#readme) - Coordinator and CLI
-- [Pattern Documentation](https://github.com/mdlopresti/loom-pattern#readme) - Agent memory
-- [Tools Documentation](https://github.com/mdlopresti/loom-tools#readme) - Docker images for CI/CD
+- [Warp](https://github.com/mdlopresti/loom-warp#readme) — Messaging backbone
+- [Pattern](https://github.com/mdlopresti/loom-pattern#readme) — Agent memory
+- [Weft](https://github.com/mdlopresti/loom-weft#readme) — Work coordinator
+- [Shuttle](https://github.com/mdlopresti/loom-shuttle#readme) — Fleet management CLI
+- [Tools](https://github.com/mdlopresti/loom-tools#readme) — Docker images for CI/CD
 
 ## Requirements
 
