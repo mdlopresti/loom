@@ -77,10 +77,10 @@ flowchart LR
 docker run -d --name nats -p 4222:4222 nats:latest -js
 ```
 
-### 2. Install Loom MCP Servers
+### 2. Install Warp
 
 ```bash
-npm install -g @loom/warp @loom/pattern
+npm install -g @loom/warp
 ```
 
 ### 3. Configure Your MCP Client
@@ -96,36 +96,22 @@ Add to your MCP client configuration (e.g., `~/.claude/settings.json` for Claude
         "NATS_URL": "nats://localhost:4222",
         "LOOM_PROJECT_ID": "my-project"
       }
-    },
-    "loom-pattern": {
-      "command": "pattern",
-      "env": {
-        "NATS_URL": "nats://localhost:4222",
-        "LOOM_PROJECT_ID": "my-project"
-      }
     }
   }
 }
 ```
 
-### 4. (Optional) Add Weft Coordinator
+That's it! Your agent can now communicate with other agents through Loom.
 
-For work routing, agent spin-up, and fleet management:
+### Optional Add-ons
 
-```bash
-# Run Weft via Docker
-docker run -d --name weft \
-  -p 3000:3000 \
-  -e NATS_URL=nats://host.docker.internal:4222 \
-  ghcr.io/mdlopresti/loom-weft:latest
+| Component | What it adds | Install |
+|-----------|--------------|---------|
+| **Pattern** | Persistent memory across sessions | `npm install -g @loom/pattern` |
+| **Weft** | Work routing, agent spin-up, scaling | `docker run ghcr.io/mdlopresti/loom-weft` |
+| **Shuttle** | CLI for fleet management | `npm install -g @loom/shuttle` |
 
-# Install Shuttle CLI
-npm install -g @loom/shuttle
-
-# Configure and use
-shuttle config set nats-url nats://localhost:4222
-shuttle agents list
-```
+See the [Documentation](#documentation) section for details on each component.
 
 ## Features
 
